@@ -97,20 +97,26 @@ class _DPRgbPolicy:
         self.agent.noise_scheduler.set_timesteps(num_inference_steps)
         self.obs_horizon = obs_horizon
         self.device = device
-        self.prev = None
+        self.prev_state = None
+        self.state_hist = None
+        self.rgb_hist = None
 
     @torch.no_grad()
     def act(self, obs, deterministic=True):
         state = obs["state"].float().to(self.device)
         rgb = obs["rgb"].to(self.device)
-        cur = {"state": state, "rgb": rgb}
-        if self.prev is None or self.prev["state"].shape != state.shape:
-            self.prev = cur
+        if self.prev_state is None or self.prev_state.shape != state.shape:
+            self.state_hist = [state] * self.obs_horizon
+            self.rgb_hist = [rgb] * self.obs_horizon
+        else:
+            self.state_hist = self.state_hist[1:] + [state]
+            self.rgb_hist = self.rgb_hist[1:] + [rgb]
+        self.prev_state = state
+
         obs_seq = {
-            "state": torch.stack([self.prev["state"], state], dim=1),
-            "rgb": torch.stack([self.prev["rgb"], rgb], dim=1),
+            "state": torch.stack(self.state_hist, dim=1),
+            "rgb": torch.stack(self.rgb_hist, dim=1),
         }
-        self.prev = cur
         aseq = self.agent.get_action(obs_seq)
         return aseq[:, 0].clamp(-1.0, 1.0)
 

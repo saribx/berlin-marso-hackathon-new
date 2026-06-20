@@ -312,18 +312,17 @@ class WarehouseSortEnv(BaseEnv):
             tcp_pose=self.agent.tcp_pose.raw_pose,
             is_grasped=info["is_grasped"],
         )
-        if "state" in self.obs_mode:
-            parcel_pose = torch.stack([p.pose.raw_pose for p in self.parcels], dim=1)
-            tag_onehot = torch.nn.functional.one_hot(self.parcel_tags, num_classes=2).float()
-            bin_pos = self._bin_positions()
-            n_bins = len(self.bins)
-            bin_color_onehot = torch.eye(n_bins, device=self.device)[None].repeat(self.num_envs, 1, 1)
-            obs.update(
-                parcel_pose=parcel_pose.reshape(self.num_envs, -1),
-                parcel_tag=tag_onehot.reshape(self.num_envs, -1),
-                bin_position=bin_pos.reshape(self.num_envs, -1),
-                bin_color=bin_color_onehot.reshape(self.num_envs, -1),
-            )
+        parcel_pose = torch.stack([p.pose.raw_pose for p in self.parcels], dim=1)
+        tag_onehot = torch.nn.functional.one_hot(self.parcel_tags, num_classes=2).float()
+        bin_pos = self._bin_positions()
+        n_bins = len(self.bins)
+        bin_color_onehot = torch.eye(n_bins, device=self.device)[None].repeat(self.num_envs, 1, 1)
+        obs.update(
+            parcel_pose=parcel_pose.reshape(self.num_envs, -1),
+            parcel_tag=tag_onehot.reshape(self.num_envs, -1),
+            bin_position=bin_pos.reshape(self.num_envs, -1),
+            bin_color=bin_color_onehot.reshape(self.num_envs, -1),
+        )
         return obs
 
     def evaluate(self):

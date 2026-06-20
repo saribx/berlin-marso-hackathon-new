@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SUBMISSION MANIFEST
+# ─────────────────────────────────────────────────────────────────────────────
+
+team: "antigravity"
+
+# Policy entrypoint "module:function" for RGB-State Diffusion Policy
+policy: warehouse_sort.il_policy:load_dp_rgb
+
+# Observation mode
+obs_mode: rgb
+
+levels:
+  easy:
+    checkpoint: il/baselines/diffusion_policy/runs/warehouse_rgb_dp_easy/checkpoints/best_eval_sort_accuracy.pt
+
+  medium:
+    checkpoint: il/baselines/diffusion_policy/runs/warehouse_rgb_dp_medium/checkpoints/best_eval_sort_accuracy.pt
+
+  hard:
+    checkpoint: il/baselines/diffusion_policy/runs/warehouse_rgb_dp_hard/checkpoints/best_eval_sort_accuracy.pt
