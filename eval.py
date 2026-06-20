@@ -58,6 +58,14 @@ def main(cfg):
                       n_envs=n_vid, seed=int(seeds[0]))
     print(f"[eval] saved rollout video (render + sensor views) -> {vid_dir}", flush=True)
 
+    import glob
+    import shutil
+    os.makedirs("output", exist_ok=True)
+    mp4_files = sorted(glob.glob(os.path.join(vid_dir, "*.mp4")), key=os.path.getmtime)
+    if mp4_files:
+        shutil.copy(mp4_files[-1], f"output/{cfg.difficulty.name}_eval.mp4")
+        print(f"[eval] Copied evaluation video to output/{cfg.difficulty.name}_eval.mp4", flush=True)
+
 
 if __name__ == "__main__":
     main()
