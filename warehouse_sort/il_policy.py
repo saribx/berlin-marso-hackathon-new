@@ -124,7 +124,7 @@ class _DPRgbPolicy:
 def load_dp_rgb(checkpoint, sample_obs, action_space, device,
                 obs_horizon=2, act_horizon=8, pred_horizon=16,
                 diffusion_step_embed_dim=64, unet_dims=(64, 128, 256), n_groups=8,
-                num_inference_steps=16, visual_encoder="resnet18", num_kp=32):
+                num_inference_steps=16, visual_encoder="plain_conv", num_kp=32):
     """Load an RGB Diffusion Policy checkpoint (vendored train_rgbd; uses EMA weights).
 
     Template implementation — image IL is not yet solving this task.
