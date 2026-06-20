@@ -344,6 +344,12 @@ if __name__ == "__main__":
 
     # agent setup
     agent = Agent(envs, args).to(device)
+    if torch.cuda.is_available() and hasattr(torch, "compile"):
+        try:
+            print("Compiling noise prediction network with torch.compile for maximum GPU speedup...")
+            agent.noise_pred_net = torch.compile(agent.noise_pred_net)
+        except Exception as e:
+            print(f"Skipping torch.compile due to: {e}")
     optimizer = optim.AdamW(params=agent.parameters(),
         lr=args.lr, betas=(0.95, 0.999), weight_decay=1e-6)
 
