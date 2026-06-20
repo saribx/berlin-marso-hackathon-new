@@ -29,7 +29,7 @@ def _add_baseline_path(rel):
 # --------------------------------------------------------------------------- #
 class _DPPolicy:
     def __init__(self, net, scheduler, obs_horizon, pred_horizon, act_dim, device,
-                 num_inference_steps=16):
+                 num_inference_steps=16, act_horizon=8):
         self.net = net.to(device).eval()
         self.scheduler = scheduler
         self.scheduler.set_timesteps(num_inference_steps)
@@ -38,33 +38,53 @@ class _DPPolicy:
         self.act_dim = act_dim
         self.device = device
         self.prev = None
+        self.act_horizon = act_horizon
+        self.action_queue = []
+        self.obs_history = []
 
     @torch.no_grad()
     def act(self, obs, deterministic=True):
         cur = (obs["state"] if isinstance(obs, dict) else obs).float().to(self.device)
+        
+        # Reset / initialize history and queue on reset or shape change
         if self.prev is None or self.prev.shape != cur.shape:
-            self.prev = cur
-        hist = [self.prev, cur][-self.obs_horizon:]
-        while len(hist) < self.obs_horizon:
-            hist = [hist[0]] + hist
+            self.obs_history = [cur] * self.obs_horizon
+            self.action_queue = []
+        else:
+            self.obs_history.append(cur)
+            if len(self.obs_history) > self.obs_horizon:
+                self.obs_history.pop(0)
         self.prev = cur
-        obs_cond = torch.stack(hist, dim=1).flatten(start_dim=1)
+
+        # If we have actions in the queue, return the next one
+        if len(self.action_queue) > 0:
+            return self.action_queue.pop(0)
+
+        # Build global conditioning from history
+        obs_cond = torch.stack(self.obs_history, dim=1).flatten(start_dim=1)
         B = cur.shape[0]
         naction = torch.randn((B, self.pred_horizon, self.act_dim), device=self.device)
         for k in self.scheduler.timesteps:
             noise_pred = self.net(sample=naction, timestep=k, global_cond=obs_cond)
             naction = self.scheduler.step(model_output=noise_pred, timestep=k, sample=naction).prev_sample
-        return naction[:, self.obs_horizon - 1].clamp(-1.0, 1.0)
+            
+        start = self.obs_horizon - 1
+        end = start + self.act_horizon
+        actions = naction[:, start:end].clamp(-1.0, 1.0) # (B, act_horizon, act_dim)
+        
+        self.action_queue = [actions[:, i] for i in range(1, self.act_horizon)]
+        return actions[:, 0]
+
 
 
 def load_dp(checkpoint, sample_obs, action_space, device,
             obs_horizon=2, pred_horizon=16, diffusion_step_embed_dim=64,
             unet_dims=(64, 128, 256), n_groups=8, num_diffusion_iters=100,
-            num_inference_steps=16):
+            num_inference_steps=16, act_horizon=8):
     """Load a state Diffusion Policy checkpoint (uses EMA weights)."""
     _add_baseline_path("diffusion_policy")
     from diffusion_policy.conditional_unet1d import ConditionalUnet1D
-    from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+    from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 
     state = sample_obs["state"] if isinstance(sample_obs, dict) else sample_obs
     obs_dim = state.shape[1]
@@ -79,11 +99,11 @@ def load_dp(checkpoint, sample_obs, action_space, device,
     net_sd = {k.replace("noise_pred_net.", "", 1): v for k, v in sd.items()
               if k.startswith("noise_pred_net.")}
     net.load_state_dict(net_sd)
-    scheduler = DDPMScheduler(num_train_timesteps=num_diffusion_iters,
+    scheduler = DDIMScheduler(num_train_timesteps=num_diffusion_iters,
                               beta_schedule="squaredcos_cap_v2", clip_sample=True,
                               prediction_type="epsilon")
     return _DPPolicy(net, scheduler, obs_horizon, pred_horizon, act_dim, device,
-                     num_inference_steps=num_inference_steps)
+                     num_inference_steps=num_inference_steps, act_horizon=act_horizon)
 
 
 # --------------------------------------------------------------------------- #

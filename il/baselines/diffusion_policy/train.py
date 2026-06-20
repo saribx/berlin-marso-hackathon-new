@@ -19,7 +19,7 @@ from torch.utils.data.sampler import RandomSampler, BatchSampler
 from torch.utils.data.dataloader import DataLoader
 from diffusion_policy.utils import IterationBasedBatchSampler, worker_init_fn
 from diffusion_policy.make_env import make_eval_envs
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
 from diffusion_policy.conditional_unet1d import ConditionalUnet1D
@@ -186,7 +186,7 @@ class Agent(nn.Module):
             n_groups=args.n_groups,
         )
         self.num_diffusion_iters = 100
-        self.noise_scheduler = DDPMScheduler(
+        self.noise_scheduler = DDIMScheduler(
             num_train_timesteps=self.num_diffusion_iters,
             beta_schedule='squaredcos_cap_v2', # has big impact on performance, try not to change
             clip_sample=True, # clip output to [-1,1] to improve stability
@@ -220,11 +220,10 @@ class Agent(nn.Module):
         return F.mse_loss(noise_pred, noise)
 
     def get_action(self, obs_seq):
-        # init scheduler
-        # self.noise_scheduler.set_timesteps(self.num_diffusion_iters)
-        # set_timesteps will change noise_scheduler.timesteps is only used in noise_scheduler.step()
-        # noise_scheduler.step() is only called during inference
-        # if we use DDPM, and inference_diffusion_steps == train_diffusion_steps, then we can skip this
+        # Set DDIM inference timesteps (16 steps)
+        if not hasattr(self, "_timesteps_set") or self.noise_scheduler.timesteps.device != obs_seq.device:
+            self.noise_scheduler.set_timesteps(16, device=obs_seq.device)
+            self._timesteps_set = True
 
         # obs_seq: (B, obs_horizon, obs_dim)
         B = obs_seq.shape[0]
@@ -301,7 +300,10 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # env setup
-    env_kwargs = dict(control_mode=args.control_mode, reward_mode="sparse", obs_mode="state", render_mode="rgb_array", human_render_camera_configs=dict(shader_pack="default"))
+    render_mode = "rgb_array" if args.capture_video else None
+    env_kwargs = dict(control_mode=args.control_mode, reward_mode="sparse", obs_mode="state", render_mode=render_mode)
+    if render_mode is not None:
+        env_kwargs["human_render_camera_configs"] = dict(shader_pack="default")
     env_kwargs.update(_demo_scene_kwargs)   # eval env matches the demos (parcels/bins/randomisation)
     assert args.max_episode_steps != None, "max_episode_steps must be specified as imitation learning algorithms task solve speed is dependent on the data you train on"
     env_kwargs["max_episode_steps"] = args.max_episode_steps
