@@ -36,7 +36,7 @@ from mani_skill.utils.wrappers.record import RecordEpisode
 CONTROL_MODE = "pd_ee_delta_pos"   # the fixed task controller (README §Action space)
 
 
-def record_raw_demos(out_dir, difficulty, num_episodes, base_seed, max_steps, obs_camera="scene"):
+def record_raw_demos(out_dir, difficulty, num_episodes, base_seed, max_steps, obs_camera="scene", action_noise=0.0):
     """Roll the scripted policy for ``num_episodes`` seeds and save raw .h5 + .json.
 
     ``obs_camera`` is baked into the recorded env_kwargs, so the later ``replay_trajectory`` step
@@ -68,11 +68,11 @@ def record_raw_demos(out_dir, difficulty, num_episodes, base_seed, max_steps, ob
         save_on_reset=True,
     )
 
-    print(f"recording {num_episodes} episodes  difficulty={difficulty}", flush=True)
+    print(f"recording {num_episodes} episodes  difficulty={difficulty} action_noise={action_noise}", flush=True)
     n_success = 0
     for i in range(num_episodes):
         seed = base_seed + i
-        history = scripted_episode(env, max_steps=max_steps, seed=seed)
+        history = scripted_episode(env, max_steps=max_steps, seed=seed, action_noise=action_noise)
         info = history[-1][-1]
         sc = info.get("success_count")
         sc_val = float(sc.item() if hasattr(sc, "item") else sc)
@@ -178,6 +178,8 @@ def main():
     ap.add_argument("--no-media", action="store_true",
                     help="skip the demo mp4 + gif")
     ap.add_argument("--media-dir", default=None, help="where to write the demo mp4 + gif")
+    ap.add_argument("--action-noise", type=float, default=0.0,
+                    help="std dev of Gaussian action noise to inject during scripted collection")
     args = ap.parse_args()
 
     n_parcels = DIFFICULTY_KWARGS[args.difficulty]["num_parcels"]
@@ -185,7 +187,7 @@ def main():
     out_dir = args.out_dir or os.path.join(repo, "il", "demos", args.difficulty)
 
     h5 = record_raw_demos(out_dir, args.difficulty, args.num_episodes, args.base_seed,
-                          max_steps, obs_camera=args.obs_camera)
+                          max_steps, obs_camera=args.obs_camera, action_noise=args.action_noise)
 
     if not args.no_replay:
         for om in args.obs_modes:
