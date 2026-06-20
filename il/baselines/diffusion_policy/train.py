@@ -19,6 +19,7 @@ from torch.utils.data.sampler import RandomSampler, BatchSampler
 from torch.utils.data.dataloader import DataLoader
 from diffusion_policy.utils import IterationBasedBatchSampler, worker_init_fn
 from diffusion_policy.make_env import make_eval_envs
+from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from diffusers.training_utils import EMAModel
 from diffusers.optimization import get_scheduler
@@ -186,7 +187,7 @@ class Agent(nn.Module):
             n_groups=args.n_groups,
         )
         self.num_diffusion_iters = 100
-        self.noise_scheduler = DDIMScheduler(
+        self.noise_scheduler = DDPMScheduler(
             num_train_timesteps=self.num_diffusion_iters,
             beta_schedule='squaredcos_cap_v2', # has big impact on performance, try not to change
             clip_sample=True, # clip output to [-1,1] to improve stability
@@ -220,10 +221,15 @@ class Agent(nn.Module):
         return F.mse_loss(noise_pred, noise)
 
     def get_action(self, obs_seq):
-        # Set DDIM inference timesteps (16 steps)
-        if not hasattr(self, "_timesteps_set") or self.noise_scheduler.timesteps.device != obs_seq.device:
-            self.noise_scheduler.set_timesteps(16, device=obs_seq.device)
-            self._timesteps_set = True
+        # Set DDIM inference scheduler (16 steps) on the correct device once
+        if not hasattr(self, "eval_scheduler") or self.eval_scheduler.timesteps.device != obs_seq.device:
+            self.eval_scheduler = DDIMScheduler(
+                num_train_timesteps=self.num_diffusion_iters,
+                beta_schedule='squaredcos_cap_v2',
+                clip_sample=True,
+                prediction_type='epsilon'
+            )
+            self.eval_scheduler.set_timesteps(16, device=obs_seq.device)
 
         # obs_seq: (B, obs_horizon, obs_dim)
         B = obs_seq.shape[0]
@@ -233,7 +239,7 @@ class Agent(nn.Module):
             # initialize action from Guassian noise
             noisy_action_seq = torch.randn((B, self.pred_horizon, self.act_dim), device=obs_seq.device)
 
-            for k in self.noise_scheduler.timesteps:
+            for k in self.eval_scheduler.timesteps:
                 # predict noise
                 noise_pred = self.noise_pred_net(
                     sample=noisy_action_seq,
@@ -242,7 +248,7 @@ class Agent(nn.Module):
                 )
 
                 # inverse diffusion step (remove noise)
-                noisy_action_seq = self.noise_scheduler.step(
+                noisy_action_seq = self.eval_scheduler.step(
                     model_output=noise_pred,
                     timestep=k,
                     sample=noisy_action_seq,

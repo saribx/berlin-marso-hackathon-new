@@ -32,7 +32,7 @@ class _DPPolicy:
                  num_inference_steps=16, act_horizon=8):
         self.net = net.to(device).eval()
         self.scheduler = scheduler
-        self.scheduler.set_timesteps(num_inference_steps)
+        self.scheduler.set_timesteps(num_inference_steps, device=device)
         self.obs_horizon = obs_horizon
         self.pred_horizon = pred_horizon
         self.act_dim = act_dim
@@ -47,7 +47,11 @@ class _DPPolicy:
         cur = (obs["state"] if isinstance(obs, dict) else obs).float().to(self.device)
         
         # Reset / initialize history and queue on reset or shape change
-        if self.prev is None or self.prev.shape != cur.shape:
+        # At reset, joint positions are START_QPOS, joint velocities are 0.
+        start_qpos = torch.tensor([0.0, 0.3927, 0.0, -1.9635, 0.0, 2.356, 0.7854, 0.04, 0.04], device=cur.device)
+        is_reset = torch.all(torch.abs(cur[:, 9:18]) < 1e-4, dim=1) & torch.all(torch.abs(cur[:, 0:9] - start_qpos) < 1e-3, dim=1)
+        
+        if torch.any(is_reset) or self.prev is None or self.prev.shape != cur.shape:
             self.obs_history = [cur] * self.obs_horizon
             self.action_queue = []
         else:
