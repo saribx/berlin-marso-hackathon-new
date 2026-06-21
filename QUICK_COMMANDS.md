@@ -17,22 +17,23 @@ Just let it complete. You'll see:
 
 ---
 
-### 2. Immediately start Medium:
+### 2. Immediately start Medium (WITH ORGANIZER FIX):
 ```bash
-python il/train.py method=dp_medium demo_dir=medium
+python il/train.py method=dp_medium demo_dir=medium max_episode_steps=400
 ```
-**Time:** 25-30 minutes
-**Watch for:** sort_accuracy should reach 60-80%
+**Time:** 30-35 minutes
+**Watch for:** sort_accuracy should reach 70-85%
+**NOTE:** `max_episode_steps=400` is CRITICAL - gives robot time for 4 parcels!
 
 ---
 
-### 3. Immediately start Hard:
+### 3. Immediately start Hard (WITH ORGANIZER FIX):
 ```bash
-python il/train.py method=dp_hard demo_dir=hard
+python il/train.py method=dp_hard demo_dir=hard max_episode_steps=600
 ```
-**Time:** 30-35 minutes
-**Watch for:** sort_accuracy should reach 50-70%
-**NOTE:** This is 50% of your final score - CRITICAL!
+**Time:** 35-40 minutes
+**Watch for:** sort_accuracy should reach 60-75%
+**NOTE:** `max_episode_steps=600` for 6 parcels + 50% of final score!
 
 ---
 
