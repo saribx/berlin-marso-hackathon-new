@@ -1,0 +1,21 @@
+# @package _global_
+# ITERATION 2: Aggressive optimization for Easy level (if iteration 1 < 100%)
+# Increased horizons + batch size for H100
+baseline_dir: diffusion_policy
+script: train.py
+demo_kind: state
+flags:
+  total_iters: 15000
+  batch_size: 1024
+  obs_horizon: 2
+  act_horizon: 12
+  pred_horizon: 24
+  num_eval_envs: 8
+  num_eval_episodes: 16
+  eval_freq: 3000
+  log_freq: 500
+  save_freq: 20000
+  capture_video: false
+  exp_name: warehouse_state_dp_easy_fast
+  lr: 1e-4
+  unet_dims: [128, 256, 512]

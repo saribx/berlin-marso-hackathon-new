@@ -1,0 +1,74 @@
+"""
+═══════════════════════════════════════════════════════════════
+COPY-PASTE THIS INTO YOUR LIGHTNING AI / COLAB NOTEBOOK
+═══════════════════════════════════════════════════════════════
+
+This is a single cell that will:
+1. Install dependencies (if needed)
+2. Train the optimized Easy level model
+3. Evaluate it
+4. Show you the accuracy
+
+Expected time: 5-7 min on H100, 10-15 min on T4
+"""
+
+# ========== INSTALLATION (Run once) ==========
+!pip install -q mani-skill==3.0.1 diffusers==0.38.0 hydra-core torch torchvision gymnasium
+
+# Clone repo if not already
+import os
+if not os.path.exists('berlin-marso-hackathon'):
+    !git clone https://github.com/YOUR-USERNAME/berlin-marso-hackathon.git
+    %cd berlin-marso-hackathon
+    !pip install -e .
+else:
+    %cd berlin-marso-hackathon
+
+# Setup headless rendering for Colab/Lightning
+os.environ['DISPLAY'] = ''
+os.environ['PYOPENGL_PLATFORM'] = 'egl'
+
+# ========== DOWNLOAD DEMOS (Run once) ==========
+print("Downloading demonstration data...")
+!python il/download_demos.py
+
+# ========== TRAINING (ITERATION 1) ==========
+print("\n" + "="*80)
+print("STARTING OPTIMIZED TRAINING - ITERATION 1")
+print("="*80)
+!python il/train.py method=dp demo_dir=easy
+
+# ========== EVALUATION ==========
+print("\n" + "="*80)
+print("EVALUATING MODEL")
+print("="*80)
+
+import glob
+checkpoint = glob.glob("il/baselines/diffusion_policy/runs/warehouse_state_dp_easy*/checkpoints/best_eval_sort_accuracy.pt")[0]
+print(f"Using checkpoint: {checkpoint}")
+
+!python eval.py difficulty=easy obs_mode=state \
+    policy=warehouse_sort.il_policy:load_dp \
+    checkpoint=$checkpoint \
+    eval_config=conf/eval/default.yaml
+
+print("\n" + "="*80)
+print("DONE! Check the 'sort_accuracy' above")
+print("Target: 1.0 (100%) for Easy level")
+print("="*80)
+
+# ========== IF ACCURACY < 100%, RUN ITERATION 2 ==========
+# Uncomment the lines below if you need the more aggressive training:
+#
+# print("\n" + "="*80)
+# print("RUNNING ITERATION 2 (MORE AGGRESSIVE)")
+# print("="*80)
+# !python il/train.py method=dp_fast demo_dir=easy
+#
+# checkpoint = glob.glob("il/baselines/diffusion_policy/runs/warehouse_state_dp_easy_fast*/checkpoints/best_eval_sort_accuracy.pt")[0]
+# !python eval.py difficulty=easy obs_mode=state \
+#     policy=warehouse_sort.il_policy:load_dp \
+#     checkpoint=$checkpoint \
+#     eval_config=conf/eval/default.yaml \
+#     flags.obs_horizon=2 flags.pred_horizon=24 flags.act_horizon=12 \
+#     flags.unet_dims="[128,256,512]"

@@ -5,15 +5,15 @@ baseline_dir: diffusion_policy
 script: train.py
 demo_kind: state
 flags:
-  total_iters: 30000
-  batch_size: 256
+  total_iters: 10000
+  batch_size: 512
   obs_horizon: 2
   act_horizon: 8
   pred_horizon: 16
   num_eval_envs: 8
   num_eval_episodes: 8
-  eval_freq: 5000
-  log_freq: 1000
+  eval_freq: 2500
+  log_freq: 500
   save_freq: 20000
   capture_video: false
   exp_name: warehouse_state_dp_easy
