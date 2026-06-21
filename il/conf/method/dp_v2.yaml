@@ -18,4 +18,3 @@ flags:
   capture_video: false
   exp_name: warehouse_state_dp_easy_v2
   lr: 5e-5
-  unet_dims: [128, 256, 512]
