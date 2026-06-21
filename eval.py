@@ -61,7 +61,7 @@ def main(cfg):
     import glob
     import shutil
     os.makedirs("output", exist_ok=True)
-    mp4_files = sorted(glob.glob(os.path.join(vid_dir, "*.mp4")), key=os.path.getmtime)
+    mp4_files = sorted(glob.glob(os.path.join(vid_dir, "**/*.mp4"), recursive=True), key=os.path.getmtime)
     if mp4_files:
         shutil.copy(mp4_files[-1], f"output/{cfg.difficulty.name}_eval.mp4")
         print(f"[eval] Copied evaluation video to output/{cfg.difficulty.name}_eval.mp4", flush=True)
