@@ -1,0 +1,21 @@
+# @package _global_
+# ITERATION 2: Conservative training with proven settings
+# Key changes: Lower LR, more eval episodes, conservative batch size
+baseline_dir: diffusion_policy
+script: train.py
+demo_kind: state
+flags:
+  total_iters: 20000
+  batch_size: 256
+  obs_horizon: 2
+  act_horizon: 8
+  pred_horizon: 24
+  num_eval_envs: 10
+  num_eval_episodes: 100
+  eval_freq: 2000
+  log_freq: 500
+  save_freq: 20000
+  capture_video: false
+  exp_name: warehouse_state_dp_easy_v2
+  lr: 5e-5
+  unet_dims: [128, 256, 512]
