@@ -19,10 +19,11 @@ print("- Eval every 2500 steps (faster feedback)")
 print("\nTarget: Get quick feedback on convergence pattern")
 print("="*80 + "\n")
 
-# Step 1: Ensure demos exist
+# Step 1: Install kagglehub if needed
 demo_path = "il/demos/easy/trajectory.state.pd_ee_delta_pos.physx_cuda.h5"
 if not os.path.exists(demo_path):
-    print("⚠️  Demos not found! Downloading...")
+    print("⚠️  Demos not found! Installing kagglehub and downloading...")
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "kagglehub"], check=False)
     subprocess.run([sys.executable, "il/download_demos.py"], check=True)
     print("✓ Demos downloaded\n")
 else:
