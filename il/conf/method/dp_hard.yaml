@@ -1,5 +1,6 @@
 # @package _global_
 # Hard level: 6 parcels, jittered positions, SWAPPING BINS
+# ORGANIZER RECOMMENDATIONS: 30k iters, longer horizons, max_episode_steps=600
 # Most important: 50% of final score!
 baseline_dir: diffusion_policy
 script: train.py
@@ -7,7 +8,7 @@ demo_kind: state
 flags:
   total_iters: 30000
   batch_size: 256
-  obs_horizon: 2
+  obs_horizon: 3
   act_horizon: 8
   pred_horizon: 40
   num_eval_envs: 10

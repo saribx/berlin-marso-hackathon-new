@@ -84,11 +84,14 @@ class _DPPolicy:
 def load_dp(checkpoint, sample_obs, action_space, device,
             obs_horizon=2, pred_horizon=16, diffusion_step_embed_dim=64,
             unet_dims=(64, 128, 256), n_groups=8, num_diffusion_iters=100,
-            num_inference_steps=16, act_horizon=8):
-    """Load a state Diffusion Policy checkpoint (uses EMA weights)."""
+            num_inference_steps=30, act_horizon=8):
+    """Load a state Diffusion Policy checkpoint (uses EMA weights).
+
+    ORGANIZER FIX: num_inference_steps increased to 30 for steadier actions.
+    """
     _add_baseline_path("diffusion_policy")
     from diffusion_policy.conditional_unet1d import ConditionalUnet1D
-    from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+    from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
     state = sample_obs["state"] if isinstance(sample_obs, dict) else sample_obs
     obs_dim = state.shape[1]
@@ -103,7 +106,7 @@ def load_dp(checkpoint, sample_obs, action_space, device,
     net_sd = {k.replace("noise_pred_net.", "", 1): v for k, v in sd.items()
               if k.startswith("noise_pred_net.")}
     net.load_state_dict(net_sd)
-    scheduler = DDIMScheduler(num_train_timesteps=num_diffusion_iters,
+    scheduler = DDPMScheduler(num_train_timesteps=num_diffusion_iters,
                               beta_schedule="squaredcos_cap_v2", clip_sample=True,
                               prediction_type="epsilon")
     return _DPPolicy(net, scheduler, obs_horizon, pred_horizon, act_dim, device,

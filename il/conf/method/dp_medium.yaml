@@ -1,18 +1,18 @@
 # @package _global_
 # Medium level: 4 parcels, jittered positions
-# Based on successful dp_v2 settings
+# ORGANIZER RECOMMENDATIONS: 30k iters, longer horizons, max_episode_steps=400
 baseline_dir: diffusion_policy
 script: train.py
 demo_kind: state
 flags:
-  total_iters: 25000
+  total_iters: 30000
   batch_size: 256
-  obs_horizon: 2
+  obs_horizon: 3
   act_horizon: 8
   pred_horizon: 32
   num_eval_envs: 10
   num_eval_episodes: 100
-  eval_freq: 2500
+  eval_freq: 3000
   log_freq: 500
   save_freq: 20000
   capture_video: false
