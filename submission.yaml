@@ -12,7 +12,7 @@ obs_mode: state
 
 levels:
   easy:
-    checkpoint: il/baselines/diffusion_policy/runs/warehouse_state_dp_easy/checkpoints/best_eval_sort_accuracy.pt
+    checkpoint: il/baselines/diffusion_policy/runs/warehouse_state_dp_easy_v2/checkpoints/best_eval_sort_accuracy.pt
 
   medium:
     checkpoint: il/baselines/diffusion_policy/runs/warehouse_state_dp_medium/checkpoints/best_eval_sort_accuracy.pt
